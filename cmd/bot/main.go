@@ -1,9 +1,12 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 
 	"github.com/Onizukachi/telegram_raindrop/pkg/config"
+	"github.com/Onizukachi/telegram_raindrop/pkg/storage"
+	"github.com/Onizukachi/telegram_raindrop/pkg/telegram"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
 )
@@ -20,23 +23,25 @@ func main() {
 		log.Fatalf("Error during loading config: %v", err)
 	}
 
-	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
+	botApi, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	bot.Debug = true
-	log.Printf("Authorized on accaunt: %v", bot.Self.UserName)
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
+	if cfg.DebugMode {
+		botApi.Debug = true
+	}
 
-	updates := bot.GetUpdatesChan(u)
-	for update := range updates {
-		if update.Message != nil {
-			log.Printf("Receive messsage %v From %v", update.Message.Text, update.Message.From.UserName)
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-			msg.ReplyToMessageID = update.Message.MessageID
-			bot.Send(msg)
-		}
+	db, err := sql.Open("postgres", "postgres://hikaru:potolok149@localhost/mydb?sslmode=disable")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	useRepo := storage.NewPostgresUserRepo(db)
+
+	bot := telegram.NewBot(botApi, cfg.RedirectUrl)
+	if err := bot.Run(); err != nil {
+		log.Fatal(err)
 	}
 }

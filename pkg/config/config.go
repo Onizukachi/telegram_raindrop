@@ -3,13 +3,16 @@ package config
 import (
 	"errors"
 	"os"
+	"strconv"
 )
 
 type Config struct {
 	TelegramToken string
 	ClientId      string
 	ClientSecret  string
+	RedirectUrl   string
 	TestBearer    string
+	DebugMode     bool
 }
 
 func Init() (*Config, error) {
@@ -28,9 +31,20 @@ func Init() (*Config, error) {
 		return nil, errors.New("env CLIENT_SECRET is required")
 	}
 
+	redirectUrl := os.Getenv("REDIRECT_URL")
+	if redirectUrl == "" {
+		return nil, errors.New("env REDIRECT_URL is required")
+	}
+
 	testBearer := os.Getenv("TEST_BEARER")
 	if testBearer == "" {
 		return nil, errors.New("env TEST_BEARER is required")
+	}
+
+	debugMode := os.Getenv("DEBUG_MODE")
+	parseDebugMode, err := strconv.ParseBool(debugMode)
+	if err != nil {
+		parseDebugMode = true
 	}
 
 	cfg := &Config{
@@ -38,6 +52,7 @@ func Init() (*Config, error) {
 		ClientId:      clientId,
 		ClientSecret:  clientSecret,
 		TestBearer:    testBearer,
+		DebugMode:     parseDebugMode,
 	}
 
 	return cfg, nil
