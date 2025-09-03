@@ -7,6 +7,7 @@ import (
 )
 
 type Config struct {
+	DbDSN         string
 	TelegramToken string
 	ClientId      string
 	ClientSecret  string
@@ -16,6 +17,11 @@ type Config struct {
 }
 
 func Init() (*Config, error) {
+	dbDSN := os.Getenv("DB_DSN")
+	if dbDSN == "" {
+		return nil, errors.New("env DB_DSN is required")
+	}
+
 	telegramToken := os.Getenv("TELEGRAM_TOKEN")
 	if telegramToken == "" {
 		return nil, errors.New("env TELEGRAM_TOKEN is required")
@@ -48,6 +54,7 @@ func Init() (*Config, error) {
 	}
 
 	cfg := &Config{
+		DbDSN:         dbDSN,
 		TelegramToken: telegramToken,
 		ClientId:      clientId,
 		ClientSecret:  clientSecret,
