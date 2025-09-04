@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/Onizukachi/telegram_raindrop/pkg/config"
+	"github.com/Onizukachi/telegram_raindrop/pkg/raindrop"
 	"github.com/Onizukachi/telegram_raindrop/pkg/storage"
 	"github.com/Onizukachi/telegram_raindrop/pkg/telegram"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -42,7 +43,10 @@ func main() {
 	defer db.Close()
 
 	useRepo := storage.NewPostgresUserRepo(db)
-	bot := telegram.NewBot(botApi, useRepo, cfg.RedirectUrl)
+
+	raindropClient := raindrop.NewClient(cfg.ClientId, cfg.ClientSecret, cfg.RedirectUrl)
+
+	bot := telegram.NewBot(botApi, raindropClient, useRepo)
 
 	go func() {
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
