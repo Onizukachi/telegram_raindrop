@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS idx_users_chat_id;
+DROP TABLE IF EXISTS users;
