@@ -7,7 +7,7 @@ import (
 )
 
 type Config struct {
-	DbDSN         string
+	DatabaseDSN   string
 	TelegramToken string
 	ClientId      string
 	ClientSecret  string
@@ -17,8 +17,8 @@ type Config struct {
 }
 
 func Init() (*Config, error) {
-	dbDSN := os.Getenv("DB_DSN")
-	if dbDSN == "" {
+	databaseDSN := os.Getenv("DB_DSN")
+	if databaseDSN == "" {
 		return nil, errors.New("env DB_DSN is required")
 	}
 
@@ -54,10 +54,11 @@ func Init() (*Config, error) {
 	}
 
 	cfg := &Config{
-		DbDSN:         dbDSN,
+		DatabaseDSN:   databaseDSN,
 		TelegramToken: telegramToken,
 		ClientId:      clientId,
 		ClientSecret:  clientSecret,
+		RedirectUrl:   redirectUrl,
 		TestBearer:    testBearer,
 		DebugMode:     parseDebugMode,
 	}

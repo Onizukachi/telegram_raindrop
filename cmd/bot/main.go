@@ -50,6 +50,8 @@ func main() {
 
 	go func() {
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			// Обпаботать колбек он сейчас приходит
+			log.Println("CALLBACK FROM RAINDROP")
 			fmt.Fprint(w, "hello world")
 		})
 
@@ -65,7 +67,7 @@ func main() {
 }
 
 func initDB(cfg *config.Config) (*sql.DB, error) {
-	db, err := sql.Open("postgres", cfg.DbDSN)
+	db, err := sql.Open("postgres", cfg.DatabaseDSN)
 	if err != nil {
 		return nil, err
 	}

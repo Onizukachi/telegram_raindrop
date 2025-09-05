@@ -35,13 +35,13 @@ func (b *Bot) Run() error {
 				authLink := b.raindropClient.BuildOAuthLink()
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, authLink)
 				b.bot.Send(msg)
+				continue
 			} else {
 				return err
 			}
 		}
 
 		fmt.Println(user)
-		// сделать миграции для создания таблиц
 		// проверить что пользователь не с протухшим токеном и если что обновить токен
 
 		if update.Message.IsCommand() {
