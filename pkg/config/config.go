@@ -7,6 +7,7 @@ import (
 )
 
 type Config struct {
+	BotName       string
 	DatabaseDSN   string
 	TelegramToken string
 	ClientId      string
@@ -17,6 +18,11 @@ type Config struct {
 }
 
 func Init() (*Config, error) {
+	botName := os.Getenv("BOT_NAME")
+	if botName == "" {
+		return nil, errors.New("env botName is required")
+	}
+
 	databaseDSN := os.Getenv("DB_DSN")
 	if databaseDSN == "" {
 		return nil, errors.New("env DB_DSN is required")
@@ -54,6 +60,7 @@ func Init() (*Config, error) {
 	}
 
 	cfg := &Config{
+		BotName:       botName,
 		DatabaseDSN:   databaseDSN,
 		TelegramToken: telegramToken,
 		ClientId:      clientId,

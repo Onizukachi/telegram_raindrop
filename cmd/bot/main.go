@@ -50,9 +50,21 @@ func main() {
 
 	go func() {
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			// Обпаботать колбек он сейчас приходит
-			log.Println("CALLBACK FROM RAINDROP")
-			fmt.Fprint(w, "hello world")
+			botUrl := fmt.Sprintf("https://t.me/%s?start=code", cfg.BotName)
+
+			code := r.URL.Query().Get("code")
+			echangeResponse, err := raindropClient.ExchangeToken(code)
+			if err != nil {
+				log.Println(err)
+				log.Println("ERRRRORRRR")
+				http.Redirect(w, r, botUrl, http.StatusMovedPermanently)
+				return
+			}
+
+			// &{AccessToken:af9edd9c-67e7-4101-bb07-5db226fa492b RefreshToken:a6fcf1c1-8073-4bee-8f04-ebe700d4812a ExpiresIn:1209599 TokenType:Bearer}
+			log.Printf("%+v\n", echangeResponse)
+
+			http.Redirect(w, r, botUrl, http.StatusMovedPermanently)
 		})
 
 		fmt.Println("HTTP server is running on :8080")
