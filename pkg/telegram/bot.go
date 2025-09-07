@@ -30,6 +30,8 @@ func (b *Bot) Run() error {
 			continue
 		}
 
+		// Доработать тут логику наверно надо какойто сервис аунтентификации чтоб вытащить отсюла логику
+		// а уже в хенлдер сообщений передавать если все норм
 		user, err := b.userRepo.GetByChatID(update.Message.Chat.ID)
 		if err != nil {
 			if errors.Is(err, storage.ErrNoRecord) {
