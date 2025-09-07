@@ -3,33 +3,18 @@ package raindrop
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 )
 
 const baseUrl = "https://raindrop.io"
-const grantType = "authorization_code"
 
 type Client struct {
 	clientID     string
 	clientSecret string
 	redirectUrl  string
-}
-
-type exchangeRequest struct {
-	GrantType    string `json:"grant_type"`
-	Code         string `json:"code"`
-	ClientID     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
-	RedirectUrl  string `json:"redirect_uri"`
-}
-
-type ExchangeResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int64  `json:"expires_in"`
-	TokenType    string `json:"token_type"`
 }
 
 func NewClient(clientID, clientSecret, redirectUrl string) *Client {
@@ -41,13 +26,17 @@ func (client *Client) BuildOAuthLink() string {
 	return baseUrl + "/oauth/authorize" + queryParams
 }
 
-func (client *Client) ExchangeToken(code string) (*ExchangeResponse, error) {
+func (client *Client) ExchangeToken(code string) (*AuthResponse, error) {
+	grantType := "authorization_code"
+
 	data := exchangeRequest{
-		GrantType:    grantType,
-		Code:         code,
-		ClientID:     client.clientID,
-		ClientSecret: client.clientSecret,
-		RedirectUrl:  client.redirectUrl,
+		baseAuthRequest: baseAuthRequest{
+			GrantType:    grantType,
+			ClientID:     client.clientID,
+			ClientSecret: client.clientSecret,
+		},
+		Code:        code,
+		RedirectUrl: client.redirectUrl,
 	}
 
 	jsonData, err := json.Marshal(data)
@@ -68,11 +57,90 @@ func (client *Client) ExchangeToken(code string) (*ExchangeResponse, error) {
 		return nil, err
 	}
 
-	var response ExchangeResponse
+	var response AuthResponse
 
 	if err := json.Unmarshal(resBody, &response); err != nil {
 		return nil, err
 	}
 
 	return &response, nil
+}
+
+func (client *Client) RefreshToken(token string) (*AuthResponse, error) {
+	grantType := "refresh_token"
+
+	data := refreshRequest{
+		baseAuthRequest: baseAuthRequest{
+			GrantType:    grantType,
+			ClientID:     client.clientID,
+			ClientSecret: client.clientSecret,
+		},
+		RefreshToken: token,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	url := baseUrl + "/oauth/access_token"
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	resBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var response AuthResponse
+
+	if err := json.Unmarshal(resBody, &response); err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}
+
+func (client *Client) CreateItem(link, accessToken string) error {
+	data := createItemRequest{Link: link}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	url := baseUrl + "/rest/v1/raindrop"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Authorizarion", "Bearer "+accessToken)
+
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var response CreateItemResponse
+	if err = json.Unmarshal(body, &response); err != nil {
+		return err
+	}
+
+	if !response.Result {
+		return errors.New("response is not successfull")
+	}
+
+	return nil
 }

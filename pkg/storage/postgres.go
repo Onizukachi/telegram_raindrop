@@ -3,6 +3,7 @@ package storage
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Onizukachi/telegram_raindrop/pkg/models"
@@ -75,4 +76,23 @@ func (r *PostgresUserRepo) Create(chatID int64, access, refresh string, expiresA
 	}
 
 	return id, nil
+}
+
+func (r *PostgresUserRepo) Update(chatID int64, access, refresh string, expiresAt time.Time) error {
+	stmt := `UPDATE users SET access_token = ?, refresh_token = ?, expires_at = ?, updated_at = ? WHERE chat_id = ?`
+	result, err := r.db.Exec(stmt, access, refresh, expiresAt, chatID)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return fmt.Errorf("no user found with chatId=%d", chatID)
+	}
+
+	return nil
 }
