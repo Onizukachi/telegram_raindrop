@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 )
 
 const baseUrl = "https://raindrop.io"
+const apiBaseUrl = "https://api.raindrop.io/rest/"
 
 type Client struct {
 	clientID     string
@@ -46,7 +46,6 @@ func (client *Client) ExchangeToken(code string) (*AuthResponse, error) {
 		return nil, err
 	}
 
-	log.Printf("ReQUEST EXHANGE DATA %v", string(jsonData))
 	url := baseUrl + "/oauth/access_token"
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -62,8 +61,6 @@ func (client *Client) ExchangeToken(code string) (*AuthResponse, error) {
 
 	var response AuthResponse
 
-	log.Println("RESPONSE BODYY")
-	log.Println(string(resBody))
 	if err := json.Unmarshal(resBody, &response); err != nil {
 		return nil, err
 	}
@@ -118,13 +115,15 @@ func (client *Client) CreateItem(link, accessToken string) error {
 		return err
 	}
 
-	url := baseUrl + "/rest/v1/raindrop"
+	url := apiBaseUrl + "v1/raindrop"
+
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
 
-	req.Header.Set("Authorizarion", "Bearer "+accessToken)
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	req.Header.Set("Content-Type", "application/json")
 
 	httpClient := &http.Client{}
 	resp, err := httpClient.Do(req)
@@ -137,6 +136,10 @@ func (client *Client) CreateItem(link, accessToken string) error {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad response: %s", resp.Status)
 	}
 
 	var response CreateItemResponse

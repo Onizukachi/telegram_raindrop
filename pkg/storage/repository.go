@@ -7,10 +7,6 @@ import (
 	"github.com/Onizukachi/telegram_raindrop/pkg/models"
 )
 
-// var (
-// 	ErrNoRecord = errors.New("repository: no matching record")
-// )
-
 var (
 	ErrDuplicate    = errors.New("repository: record already exists")
 	ErrNotExist     = errors.New("repository: row does not exist")
