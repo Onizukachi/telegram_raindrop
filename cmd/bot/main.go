@@ -46,7 +46,7 @@ func main() {
 
 	raindropClient := raindrop.NewClient(cfg.ClientId, cfg.ClientSecret, cfg.RedirectUrl)
 	bot := telegram.NewBot(botApi, raindropClient, useRepo)
-	server := server.NewServer(":8080", cfg.BotName, botApi, raindropClient)
+	server := server.NewServer(":8080", cfg.BotName, botApi, raindropClient, useRepo)
 
 	go func() {
 		if err = server.Run(); err != nil {

@@ -3,10 +3,10 @@ package storage
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/Onizukachi/telegram_raindrop/pkg/models"
+	"github.com/lib/pq"
 )
 
 type PostgresUserRepo struct {
@@ -21,20 +21,21 @@ func (r *PostgresUserRepo) GetByChatID(chatID int64) (*models.User, error) {
 	stmt := "SELECT id, chat_id, access_token, refresh_token, expires_at FROM users WHERE chat_id = $1"
 	row := r.db.QueryRow(stmt, chatID)
 
-	user := &models.User{}
+	var user models.User
+
 	err := row.Scan(&user.ID, &user.ChatID, &user.AccessToken, &user.RefreshToken, &user.ExpriresAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNoRecord
+			return nil, ErrNotExist
 		} else {
 			return nil, err
 		}
 	}
 
-	return user, nil
+	return &user, nil
 }
 
-func (r *PostgresUserRepo) GetAll() ([]*models.User, error) {
+func (r *PostgresUserRepo) All() ([]*models.User, error) {
 	stmt := "SELECT id, chat_id, access_token, refresh_token, expires_at FROM users"
 	rows, err := r.db.Query(stmt)
 	if err != nil {
@@ -61,37 +62,63 @@ func (r *PostgresUserRepo) GetAll() ([]*models.User, error) {
 	return users, nil
 }
 
-func (r *PostgresUserRepo) Create(chatID int64, access, refresh string, expiresAt time.Time) (int64, error) {
+func (r *PostgresUserRepo) Create(chatID int64, access, refresh string, expiresAt time.Time) error {
 	stmt := `INSERT INTO users (chat_id, access_token, refresh_token, expires_at, created_at, updated_at) 
-		VALUES (?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`
+		VALUES ($1, $2, $3, $4, NOW(), NOW())`
 
-	result, err := r.db.Exec(stmt, chatID, access, refresh, expiresAt)
+	_, err := r.db.Exec(stmt, chatID, access, refresh, expiresAt)
 	if err != nil {
-		return 0, err
+		var pqError *pq.Error
+		if errors.As(err, &pqError) {
+			if pqError.Code == "23505" {
+				return ErrDuplicate
+			}
+		}
+		return err
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
+	return nil
 }
 
 func (r *PostgresUserRepo) Update(chatID int64, access, refresh string, expiresAt time.Time) error {
-	stmt := `UPDATE users SET access_token = ?, refresh_token = ?, expires_at = ?, updated_at = ? WHERE chat_id = ?`
-	result, err := r.db.Exec(stmt, access, refresh, expiresAt, chatID)
+	stmt := `UPDATE users SET access_token = $1, refresh_token = $2, expires_at = $3, updated_at = NOW() WHERE chat_id = $4`
+	res, err := r.db.Exec(stmt, access, refresh, expiresAt, chatID)
+	if err != nil {
+		var pqError *pq.Error
+		if errors.As(err, &pqError) {
+			if pqError.Code == "23505" {
+				return ErrDuplicate
+			}
+		}
+		return err
+	}
+
+	rowsAffected, err := res.RowsAffected()
 	if err != nil {
 		return err
 	}
 
-	rows, err := result.RowsAffected()
+	if rowsAffected == 0 {
+		return ErrUpdateFailed
+	}
+
+	return nil
+}
+
+func (r *PostgresUserRepo) Delete(chatID int64) error {
+	stmt := `DELETE from users WHERE chat_id = $1`
+	res, err := r.db.Exec(stmt, chatID)
 	if err != nil {
 		return err
 	}
 
-	if rows == 0 {
-		return fmt.Errorf("no user found with chatId=%d", chatID)
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrDeleteFailed
 	}
 
 	return nil

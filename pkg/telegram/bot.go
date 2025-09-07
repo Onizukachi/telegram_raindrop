@@ -34,8 +34,8 @@ func (b *Bot) Run() error {
 		// а уже в хенлдер сообщений передавать если все норм
 		user, err := b.userRepo.GetByChatID(update.Message.Chat.ID)
 		if err != nil {
-			if errors.Is(err, storage.ErrNoRecord) {
-				authLink := b.raindropClient.BuildOAuthLink()
+			if errors.Is(err, storage.ErrNotExist) {
+				authLink := b.raindropClient.BuildOAuthLink(update.Message.Chat.ID)
 				textMsg := fmt.Sprintf("Необходимо авторизоваться в Raindrop по данной ссылке: %s", authLink)
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, textMsg)
 				b.bot.Send(msg)

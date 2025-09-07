@@ -5,8 +5,10 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/Onizukachi/telegram_raindrop/pkg/raindrop"
+	"github.com/Onizukachi/telegram_raindrop/pkg/storage"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -15,15 +17,17 @@ type Server struct {
 	botName        string
 	botApi         *tgbotapi.BotAPI
 	raindropClient *raindrop.Client
+	userRepo       storage.UserRepository
 }
 
 // Доработать тут логику
-func NewServer(addr, botName string, botApi *tgbotapi.BotAPI, raindropClient *raindrop.Client) *Server {
+func NewServer(addr, botName string, botApi *tgbotapi.BotAPI, raindropClient *raindrop.Client, userRepo storage.UserRepository) *Server {
 	return &Server{
 		addr:           addr,
 		botName:        botName,
 		botApi:         botApi,
 		raindropClient: raindropClient,
+		userRepo:       userRepo,
 	}
 }
 
@@ -32,7 +36,7 @@ func (s *Server) Run() error {
 	mux.HandleFunc("/", s.handleCallback)
 
 	fmt.Println("HTTP server is running on :8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(":8080", mux); err != nil {
 		return err
 	}
 
@@ -41,25 +45,39 @@ func (s *Server) Run() error {
 
 func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	botUrl := fmt.Sprintf("https://t.me/%s?start=code", s.botName)
+	log.Println("QUERY CALLBACK PARAMS")
+	log.Println(r.URL.Query())
 	code := r.URL.Query().Get("code")
 	chatIDStr := r.URL.Query().Get("chat_id")
 	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
+
+	log.Println(chatID)
 	if err != nil {
+		log.Println("ERORR CALLBACK")
 		log.Println(err)
 		// textMsg := "Не удалось прочитать chatId"
 		// Обработать когда chatId не валидный или не найден у нас такой чат репу прокинуть наверно надо
 		http.Redirect(w, r, botUrl, http.StatusMovedPermanently)
 	}
 
-	echangeResponse, err := s.raindropClient.ExchangeToken(code)
+	exchangeResponse, err := s.raindropClient.ExchangeToken(code)
 	if err != nil {
 		log.Println(err)
-		log.Println("ERRRRORRRR")
+		log.Println("ERORR CALLBACK")
 		http.Redirect(w, r, botUrl, http.StatusMovedPermanently)
 		return
 	}
 
-	log.Printf("%+v\n", echangeResponse)
+	log.Printf("CALLBACK DATA %+v", exchangeResponse)
+	expriresIn := time.Now().Add(time.Second * time.Duration(exchangeResponse.ExpiresIn))
+	err = s.userRepo.Create(chatID, exchangeResponse.AccessToken, exchangeResponse.RefreshToken, expriresIn)
+	if err != nil {
+		log.Println(err)
+		log.Println("ERORR CALLBACK when saving user")
+		http.Redirect(w, r, botUrl, http.StatusMovedPermanently)
+		return
+	}
+	log.Printf("%+v\n", &exchangeResponse)
 
 	textMsg := "Поздравляю! Ты успешно авторизовался :)"
 	msg := tgbotapi.NewMessage(chatID, textMsg)

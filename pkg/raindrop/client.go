@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -21,8 +22,9 @@ func NewClient(clientID, clientSecret, redirectUrl string) *Client {
 	return &Client{clientID: clientID, clientSecret: clientSecret, redirectUrl: redirectUrl}
 }
 
-func (client *Client) BuildOAuthLink() string {
-	queryParams := fmt.Sprintf("?redirect_uri=%s&client_id=%s", client.redirectUrl, client.clientID)
+func (client *Client) BuildOAuthLink(chatID int64) string {
+	redirectUri := client.redirectUrl + fmt.Sprintf("?chat_id=%d", chatID)
+	queryParams := fmt.Sprintf("?redirect_uri=%s&client_id=%s", redirectUri, client.clientID)
 	return baseUrl + "/oauth/authorize" + queryParams
 }
 
@@ -44,6 +46,7 @@ func (client *Client) ExchangeToken(code string) (*AuthResponse, error) {
 		return nil, err
 	}
 
+	log.Printf("ReQUEST EXHANGE DATA %v", string(jsonData))
 	url := baseUrl + "/oauth/access_token"
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -59,10 +62,13 @@ func (client *Client) ExchangeToken(code string) (*AuthResponse, error) {
 
 	var response AuthResponse
 
+	log.Println("RESPONSE BODYY")
+	log.Println(string(resBody))
 	if err := json.Unmarshal(resBody, &response); err != nil {
 		return nil, err
 	}
 
+	// проверить не валидный отве {"result":false,"status":400,"errorMessage":"Incorrect redirect_uri"}
 	return &response, nil
 }
 
