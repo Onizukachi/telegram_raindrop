@@ -6,8 +6,11 @@ import (
 	"strconv"
 )
 
+// разбить конфиг по структурами дя базы отдельно рейндроп отдельно
+// сделать логер свой и захаркдкодить соообщения в константы
 type Config struct {
 	BotName       string
+	ServerAddr    string
 	DatabaseDSN   string
 	TelegramToken string
 	ClientId      string
@@ -21,6 +24,11 @@ func Init() (*Config, error) {
 	botName := os.Getenv("BOT_NAME")
 	if botName == "" {
 		return nil, errors.New("env botName is required")
+	}
+
+	serverAddr := os.Getenv("SERVER_ADDR")
+	if serverAddr == "" {
+		return nil, errors.New("env SERVER_ADDR is required")
 	}
 
 	databaseDSN := os.Getenv("DB_DSN")
@@ -61,6 +69,7 @@ func Init() (*Config, error) {
 
 	cfg := &Config{
 		BotName:       botName,
+		ServerAddr:    serverAddr,
 		DatabaseDSN:   databaseDSN,
 		TelegramToken: telegramToken,
 		ClientId:      clientId,

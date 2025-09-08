@@ -35,8 +35,7 @@ func (s *Server) Run() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleCallback)
 
-	fmt.Println("HTTP server is running on :8080")
-	if err := http.ListenAndServe(":8080", mux); err != nil {
+	if err := http.ListenAndServe(s.addr, mux); err != nil {
 		return err
 	}
 
@@ -49,7 +48,6 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	chatIDStr := r.URL.Query().Get("chat_id")
 	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
 
-	log.Println(chatID)
 	if err != nil {
 		// textMsg := "Не удалось прочитать chatId"
 		// Обработать когда chatId не валидный или не найден у нас такой чат репу прокинуть наверно надо
