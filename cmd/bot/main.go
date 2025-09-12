@@ -14,12 +14,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// func init() {
-// 	if err := godotenv.Load(); err != nil {
-// 		log.Fatal("Error loading .env file")
-// 	}
-// }
-
 func main() {
 	cfg, err := config.Init()
 	fmt.Printf("%+v\n", cfg)
@@ -45,7 +39,7 @@ func main() {
 	defer db.Close()
 
 	useRepo := storage.NewPostgresUserRepo(db)
-	raindropClient := raindrop.NewClient(cfg.ClientId, cfg.ClientSecret, cfg.RedirectUrl)
+	raindropClient := raindrop.NewClient(cfg.Raindrop.ClientId, cfg.Raindrop.ClientSecret, cfg.Raindrop.RedirectUrl)
 	bot := telegram.NewBot(botApi, raindropClient, useRepo)
 	server := server.NewServer(cfg.ServerAddr, cfg.BotName, botApi, raindropClient, useRepo)
 

@@ -25,37 +25,64 @@ type Errors struct {
 }
 
 type Raindrop struct {
-	ClientId     string `mapstructure:"CLIENT_ID"`
-	ClientSecret string `mapstructure:"CLIENT_SECRET"`
-	RedirectUrl  string `mapstructure:"REDIRECT_URL"`
+	ClientId     string `mapstructure:"raindrop_client_id"`
+	ClientSecret string `mapstructure:"raindrop_client_secret"`
+	RedirectUrl  string `mapstructure:"raindrop_redirect_url"`
 }
 
 type Config struct {
-	BotName       string `mapstructure:"BOT_NAME"`
-	ServerAddr    string `mapstructure:"SERVER_ADDR"`
-	DatabaseDSN   string `mapstructure:"DB_DSN"`
-	TelegramToken string `mapstructure:"TELEGRAM_TOKEN"`
-	DebugMode     bool   `mapstructure:"DEBUG_MODE"`
-	Raindrop
-	Messages
+	BotName       string   `mapstructure:"bot_name"`
+	ServerAddr    string   `mapstructure:"server_addr"`
+	DatabaseDSN   string   `mapstructure:"db_dsn"`
+	TelegramToken string   `mapstructure:"telegram_token"`
+	DebugMode     bool     `mapstructure:"debug_mode"`
+	Raindrop      Raindrop `mapstructure:",squash"`
+	Messages      Messages
 }
 
 func Init() (*Config, error) {
-	var cfg Config
+	cfg := Config{}
 
-	viper.AddConfigPath(".")
-	viper.SetConfigFile(".env")
-	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err != nil {
+	if err := loadENV(&cfg); err != nil {
 		return nil, err
 	}
 
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
-	if err := viper.Unmarshal(&cfg); err != nil {
+	if err := loadMessages(&cfg); err != nil {
 		return nil, err
 	}
 
 	return &cfg, nil
+}
+
+func loadENV(cfg *Config) error {
+	envViper := viper.New()
+	envViper.SetConfigFile(".env")
+	envViper.AutomaticEnv()
+	envViper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	if err := envViper.ReadInConfig(); err != nil {
+		return err
+	}
+
+	if err := envViper.Unmarshal(&cfg); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func loadMessages(cfg *Config) error {
+	messagesViper := viper.New()
+	messagesViper.AddConfigPath(".")
+	messagesViper.SetConfigFile("messages.yml")
+
+	if err := messagesViper.ReadInConfig(); err != nil {
+		return err
+	}
+
+	if err := messagesViper.Unmarshal(&cfg); err != nil {
+		return err
+	}
+
+	return nil
 }
