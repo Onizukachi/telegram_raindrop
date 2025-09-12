@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	"github.com/Onizukachi/telegram_raindrop/pkg/config"
@@ -10,18 +11,19 @@ import (
 	"github.com/Onizukachi/telegram_raindrop/pkg/storage"
 	"github.com/Onizukachi/telegram_raindrop/pkg/telegram"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
-func init() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
-	}
-}
+// func init() {
+// 	if err := godotenv.Load(); err != nil {
+// 		log.Fatal("Error loading .env file")
+// 	}
+// }
 
 func main() {
 	cfg, err := config.Init()
+	fmt.Printf("%+v\n", cfg)
+
 	if err != nil {
 		log.Fatalf("Error during loading config: %v", err)
 	}
