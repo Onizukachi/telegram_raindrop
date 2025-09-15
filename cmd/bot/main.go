@@ -2,10 +2,11 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
+	"os"
 
 	"github.com/Onizukachi/telegram_raindrop/pkg/config"
+	"github.com/Onizukachi/telegram_raindrop/pkg/logger"
 	"github.com/Onizukachi/telegram_raindrop/pkg/raindrop"
 	"github.com/Onizukachi/telegram_raindrop/pkg/server"
 	"github.com/Onizukachi/telegram_raindrop/pkg/storage"
@@ -16,15 +17,16 @@ import (
 
 func main() {
 	cfg, err := config.Init()
-	fmt.Printf("%+v\n", cfg)
-
 	if err != nil {
 		log.Fatalf("Error during loading config: %v", err)
 	}
 
+	logger := logger.SetupLogger(cfg.DebugMode)
+
 	botApi, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
-		log.Fatalf("Error during create BotAPI: %v", err)
+		logger.Error("Error during create BotAPI", "error", err)
+		os.Exit(1)
 	}
 
 	if cfg.DebugMode {
@@ -33,7 +35,8 @@ func main() {
 
 	db, err := initDB(cfg)
 	if err != nil {
-		log.Fatalf("Error during init DB: %v", err)
+		logger.Error("Error during init DB", "error", err)
+		os.Exit(1)
 	}
 
 	defer db.Close()
@@ -45,12 +48,14 @@ func main() {
 
 	go func() {
 		if err = server.Run(); err != nil {
-			log.Fatal(err)
+			logger.Error("Error in server", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	if err := bot.Run(); err != nil {
-		log.Fatal(err)
+		logger.Error("Error in bot", "error", err)
+		os.Exit(1)
 	}
 }
 
