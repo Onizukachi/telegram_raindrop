@@ -1,8 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 )
 
@@ -25,18 +27,18 @@ type Errors struct {
 }
 
 type Raindrop struct {
-	ClientId     string `mapstructure:"raindrop_client_id"`
-	ClientSecret string `mapstructure:"raindrop_client_secret"`
-	RedirectUrl  string `mapstructure:"raindrop_redirect_url"`
+	ClientId     string `mapstructure:"client_id" validate:"required"`
+	ClientSecret string `mapstructure:"client_secret" validate:"required"`
+	RedirectUrl  string `mapstructure:"redirect_url" validate:"required"`
 }
 
 type Config struct {
-	BotName       string   `mapstructure:"bot_name"`
-	ServerAddr    string   `mapstructure:"server_addr"`
-	DatabaseDSN   string   `mapstructure:"db_dsn"`
-	TelegramToken string   `mapstructure:"telegram_token"`
-	DebugMode     bool     `mapstructure:"debug_mode"`
-	Raindrop      Raindrop `mapstructure:",squash"`
+	BotName       string `mapstructure:"bot_name"`
+	ServerAddr    string `mapstructure:"server_addr"`
+	DatabaseDSN   string `mapstructure:"db_dsn" validate:"required"`
+	TelegramToken string `mapstructure:"telegram_token" validate:"required"`
+	DebugMode     bool   `mapstructure:"debug_mode"`
+	Raindrop      Raindrop
 	Messages      Messages
 }
 
@@ -44,11 +46,15 @@ func Init() (*Config, error) {
 	cfg := Config{}
 
 	if err := loadENV(&cfg); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("loading env failed: %w", err)
 	}
 
 	if err := loadMessages(&cfg); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("loading messages failed: %w", err)
+	}
+
+	if err := validateCfg(&cfg); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
 	return &cfg, nil
@@ -56,9 +62,12 @@ func Init() (*Config, error) {
 
 func loadENV(cfg *Config) error {
 	envViper := viper.New()
+
 	envViper.SetConfigFile(".env")
 	envViper.AutomaticEnv()
 	envViper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	setDefaults(envViper)
 
 	if err := envViper.ReadInConfig(); err != nil {
 		return err
@@ -71,6 +80,12 @@ func loadENV(cfg *Config) error {
 	return nil
 }
 
+func setDefaults(viper *viper.Viper) {
+	viper.SetDefault("bot_name", "raindrop_links_bot")
+	viper.SetDefault("server_addr", "0.0.0.0:8080")
+	viper.SetDefault("debug_mode", true)
+}
+
 func loadMessages(cfg *Config) error {
 	messagesViper := viper.New()
 	messagesViper.AddConfigPath(".")
@@ -81,6 +96,16 @@ func loadMessages(cfg *Config) error {
 	}
 
 	if err := messagesViper.Unmarshal(&cfg); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validateCfg(cfg *Config) error {
+	validate := validator.New()
+
+	if err := validate.Struct(cfg); err != nil {
 		return err
 	}
 
