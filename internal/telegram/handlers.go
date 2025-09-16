@@ -1,7 +1,7 @@
 package telegram
 
 import (
-	"github.com/Onizukachi/telegram_raindrop/pkg/models"
+	"github.com/Onizukachi/telegram_raindrop/internal/models"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 

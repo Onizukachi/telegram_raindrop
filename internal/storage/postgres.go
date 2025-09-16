@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Onizukachi/telegram_raindrop/pkg/models"
+	"github.com/Onizukachi/telegram_raindrop/internal/models"
 	"github.com/lib/pq"
 )
 

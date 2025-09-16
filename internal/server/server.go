@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Onizukachi/telegram_raindrop/pkg/raindrop"
-	"github.com/Onizukachi/telegram_raindrop/pkg/storage"
+	"github.com/Onizukachi/telegram_raindrop/internal/raindrop"
+	"github.com/Onizukachi/telegram_raindrop/internal/storage"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 

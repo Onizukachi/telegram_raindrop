@@ -5,12 +5,12 @@ import (
 	"log"
 	"os"
 
-	"github.com/Onizukachi/telegram_raindrop/pkg/config"
-	"github.com/Onizukachi/telegram_raindrop/pkg/logger"
-	"github.com/Onizukachi/telegram_raindrop/pkg/raindrop"
-	"github.com/Onizukachi/telegram_raindrop/pkg/server"
-	"github.com/Onizukachi/telegram_raindrop/pkg/storage"
-	"github.com/Onizukachi/telegram_raindrop/pkg/telegram"
+	"github.com/Onizukachi/telegram_raindrop/internal/config"
+	"github.com/Onizukachi/telegram_raindrop/internal/logger"
+	"github.com/Onizukachi/telegram_raindrop/internal/raindrop"
+	"github.com/Onizukachi/telegram_raindrop/internal/server"
+	"github.com/Onizukachi/telegram_raindrop/internal/storage"
+	"github.com/Onizukachi/telegram_raindrop/internal/telegram"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	_ "github.com/lib/pq"
 )
