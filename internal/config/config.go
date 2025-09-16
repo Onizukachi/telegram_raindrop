@@ -24,6 +24,7 @@ type Errors struct {
 	Default      string `mapstructure:"default"`
 	InvalidURL   string `mapstructure:"invalid_url"`
 	UnableToSave string `mapstructure:"unable_to_save"`
+	FailAuth     string `mapstructure:"fail_auth"`
 }
 
 type Raindrop struct {
