@@ -1,11 +1,8 @@
 package telegram
 
 import (
-	"errors"
 	"fmt"
-	"time"
 
-	"github.com/Onizukachi/telegram_raindrop/internal/storage"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -15,49 +12,26 @@ const (
 
 func (b *Bot) handleMessage(message *tgbotapi.Message) error {
 	chatID := message.Chat.ID
-	user, err := b.userRepo.GetByChatID(chatID)
+	authResult, err := b.AuthenticateUser(chatID)
 	if err != nil {
-		if errors.Is(err, storage.ErrNotExist) {
-			authLink := b.raindropClient.BuildOAuthLink(chatID)
-			textMsg := fmt.Sprintf(b.messages.Start, authLink)
-			msg := tgbotapi.NewMessage(chatID, textMsg)
-			b.bot.Send(msg)
-			return nil
-		} else {
-			msg := tgbotapi.NewMessage(chatID, b.messages.Errors.Default)
-			b.bot.Send(msg)
-			return err
-		}
+		return b.sendMessage(chatID, b.messages.Errors.FailAuth, message.MessageID)
 	}
 
-	if time.Now().Before(user.ExpriresAt) {
-		refreshResponse, err := b.raindropClient.RefreshToken(user.RefreshToken)
-		if err != nil {
-			msg := tgbotapi.NewMessage(chatID, b.messages.Errors.FailAuth)
-			b.bot.Send(msg)
-			return err
-		}
-
-		expriresIn := time.Now().Add(time.Second * time.Duration(refreshResponse.ExpiresIn))
-		err = b.userRepo.Update(chatID, refreshResponse.AccessToken, refreshResponse.RefreshToken, expriresIn)
-		if err != nil {
-			msg := tgbotapi.NewMessage(chatID, b.messages.Errors.Default)
-			b.bot.Send(msg)
-			return err
-		}
-	} else {
-		err = b.raindropClient.CreateItem(message.Text, user.AccessToken)
-		if err != nil {
-			return err
-		}
-
-		textMsg := "Ссылка успешно сохранена :)"
-		msg := tgbotapi.NewMessage(message.Chat.ID, textMsg)
-		msg.ReplyToMessageID = message.MessageID
-		b.bot.Send(msg)
+	if authResult.NeedsAuth {
+		textMsg := fmt.Sprintf(b.messages.Start, authResult.AuthLink)
+		return b.sendMessage(chatID, textMsg, message.MessageID)
 	}
 
-	return nil
+	if err := b.validateURL(message.Text); err != nil {
+		return b.sendMessage(chatID, b.messages.InvalidURL, message.MessageID)
+	}
+
+	err = b.raindropClient.CreateItem(message.Text, authResult.User.AccessToken)
+	if err != nil {
+		return b.sendMessage(chatID, b.messages.UnableToSave, message.MessageID)
+	}
+
+	return b.sendMessage(chatID, b.messages.Responses.LinkSaved, message.MessageID)
 }
 
 func (b *Bot) handleCommand(message *tgbotapi.Message) error {
@@ -71,48 +45,28 @@ func (b *Bot) handleCommand(message *tgbotapi.Message) error {
 
 func (b *Bot) handleStartCommand(message *tgbotapi.Message) error {
 	chatID := message.Chat.ID
-	user, err := b.userRepo.GetByChatID(chatID)
+	authResult, err := b.AuthenticateUser(chatID)
 	if err != nil {
-		if errors.Is(err, storage.ErrNotExist) {
-			authLink := b.raindropClient.BuildOAuthLink(chatID)
-			textMsg := fmt.Sprintf(b.messages.Start, authLink)
-			msg := tgbotapi.NewMessage(chatID, textMsg)
-			b.bot.Send(msg)
-			return nil
-		} else {
-			msg := tgbotapi.NewMessage(chatID, b.messages.Errors.Default)
-			b.bot.Send(msg)
-			return err
-		}
+		return b.sendMessage(chatID, b.messages.Errors.FailAuth)
 	}
 
-	if time.Now().Before(user.ExpriresAt) {
-		refreshResponse, err := b.raindropClient.RefreshToken(user.RefreshToken)
-		if err != nil {
-			msg := tgbotapi.NewMessage(chatID, b.messages.Errors.FailAuth)
-			b.bot.Send(msg)
-			return err
-		}
-
-		expriresIn := time.Now().Add(time.Second * time.Duration(refreshResponse.ExpiresIn))
-		err = b.userRepo.Update(chatID, refreshResponse.AccessToken, refreshResponse.RefreshToken, expriresIn)
-		if err != nil {
-			msg := tgbotapi.NewMessage(chatID, b.messages.Errors.Default)
-			b.bot.Send(msg)
-			return err
-		}
-	} else {
-		msg := tgbotapi.NewMessage(chatID, b.messages.Responses.AlreadyAuthorized)
-		b.bot.Send(msg)
-		return nil
+	if authResult.NeedsAuth {
+		textMsg := fmt.Sprintf(b.messages.Start, authResult.AuthLink)
+		return b.sendMessage(chatID, textMsg)
 	}
 
-	return nil
+	return b.sendMessage(chatID, b.messages.Responses.AlreadyAuthorized)
 }
 
 func (b *Bot) handleUnknownCommand(message *tgbotapi.Message) error {
-	msg := tgbotapi.NewMessage(message.Chat.ID, b.messages.Responses.UnknownCommand)
-	_, err := b.bot.Send(msg)
+	return b.sendMessage(message.Chat.ID, b.messages.Responses.UnknownCommand)
+}
 
+func (b *Bot) sendMessage(chatID int64, message string, replyTo ...int) error {
+	msg := tgbotapi.NewMessage(chatID, message)
+	if len(replyTo) > 0 && replyTo[0] > 0 {
+		msg.ReplyToMessageID = replyTo[0]
+	}
+	_, err := b.bot.Send(msg)
 	return err
 }
