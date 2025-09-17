@@ -14,19 +14,48 @@ const (
 )
 
 func (b *Bot) handleMessage(message *tgbotapi.Message) error {
-	// Проверить что пользователь существует и что токен валидный
-	// если не существует то отправить ссылку на авторизацию
-	// если истек срок попробовать рефрешить
-	// если все норм то сохраняем
-	// err := b.raindropClient.CreateItem(message.Text, user.AccessToken)
-	// if err != nil {
-	// 	return err
-	// }
+	chatID := message.Chat.ID
+	user, err := b.userRepo.GetByChatID(chatID)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotExist) {
+			authLink := b.raindropClient.BuildOAuthLink(chatID)
+			textMsg := fmt.Sprintf(b.messages.Start, authLink)
+			msg := tgbotapi.NewMessage(chatID, textMsg)
+			b.bot.Send(msg)
+			return nil
+		} else {
+			msg := tgbotapi.NewMessage(chatID, b.messages.Errors.Default)
+			b.bot.Send(msg)
+			return err
+		}
+	}
 
-	// textMsg := "Ссылка успешно сохранена :)"
-	// msg := tgbotapi.NewMessage(message.Chat.ID, textMsg)
-	// msg.ReplyToMessageID = message.MessageID
-	// b.bot.Send(msg)
+	if time.Now().Before(user.ExpriresAt) {
+		refreshResponse, err := b.raindropClient.RefreshToken(user.RefreshToken)
+		if err != nil {
+			msg := tgbotapi.NewMessage(chatID, b.messages.Errors.FailAuth)
+			b.bot.Send(msg)
+			return err
+		}
+
+		expriresIn := time.Now().Add(time.Second * time.Duration(refreshResponse.ExpiresIn))
+		err = b.userRepo.Update(chatID, refreshResponse.AccessToken, refreshResponse.RefreshToken, expriresIn)
+		if err != nil {
+			msg := tgbotapi.NewMessage(chatID, b.messages.Errors.Default)
+			b.bot.Send(msg)
+			return err
+		}
+	} else {
+		err = b.raindropClient.CreateItem(message.Text, user.AccessToken)
+		if err != nil {
+			return err
+		}
+
+		textMsg := "Ссылка успешно сохранена :)"
+		msg := tgbotapi.NewMessage(message.Chat.ID, textMsg)
+		msg.ReplyToMessageID = message.MessageID
+		b.bot.Send(msg)
+	}
 
 	return nil
 }
