@@ -44,7 +44,7 @@ func main() {
 	useRepo := storage.NewPostgresUserRepo(db)
 	raindropClient := raindrop.NewClient(cfg.Raindrop.ClientId, cfg.Raindrop.ClientSecret, cfg.Raindrop.RedirectUrl)
 	bot := telegram.NewBot(botApi, raindropClient, useRepo, cfg.Messages, logger)
-	server := server.NewServer(cfg.ServerAddr, cfg.BotName, botApi, raindropClient, useRepo)
+	server := server.NewServer(cfg.ServerAddr, cfg.BotName, botApi, raindropClient, useRepo, cfg.Messages)
 
 	go func() {
 		if err = server.Run(); err != nil {

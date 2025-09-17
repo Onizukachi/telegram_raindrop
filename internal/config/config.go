@@ -15,6 +15,7 @@ type Messages struct {
 
 type Responses struct {
 	Start             string `mapstructure:"start"`
+	SuccessAuthorized string `mapstructure:"success_authorized"`
 	AlreadyAuthorized string `mapstructure:"already_authorized"`
 	UnknownCommand    string `mapstructure:"unknown_command"`
 	LinkSaved         string `mapstructure:"link_saved"`
