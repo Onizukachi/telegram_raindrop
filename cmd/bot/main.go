@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 
@@ -12,6 +13,9 @@ import (
 	"github.com/Onizukachi/telegram_raindrop/internal/storage"
 	"github.com/Onizukachi/telegram_raindrop/internal/telegram"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 )
 
@@ -38,8 +42,16 @@ func main() {
 		logger.Error("Error during init DB", "error", err)
 		os.Exit(1)
 	}
+	logger.Info("Database created successfully")
 
 	defer db.Close()
+
+	err = runMigrations(db)
+	if err != nil {
+		logger.Error("Error during apply migrations", "error", err)
+		os.Exit(1)
+	}
+	logger.Info("Migrations applied successfully")
 
 	useRepo := storage.NewPostgresUserRepo(db)
 	raindropClient := raindrop.NewClient(cfg.Raindrop.ClientId, cfg.Raindrop.ClientSecret, cfg.Raindrop.RedirectUrl)
@@ -71,4 +83,25 @@ func initDB(cfg *config.Config) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func runMigrations(db *sql.DB) error {
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return fmt.Errorf("could not create postgres driver: %v", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file:///internal/storage/migrations",
+		"postgres", driver)
+
+	if err != nil {
+		return fmt.Errorf("could not create migrate instance: %w", err)
+	}
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("migration failed: %v", err)
+	}
+
+	return nil
 }

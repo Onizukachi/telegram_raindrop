@@ -62,10 +62,13 @@ func (client *Client) ExchangeToken(code string) (*AuthResponse, error) {
 	var response AuthResponse
 
 	if err := json.Unmarshal(resBody, &response); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
 	}
 
-	// проверить не валидный отве {"result":false,"status":400,"errorMessage":"Incorrect redirect_uri"}
+	if response.AccessToken == "" {
+		return nil, fmt.Errorf("auth error: %s (status %d)", response.ErrorMessage, response.Status)
+	}
+
 	return &response, nil
 }
 
