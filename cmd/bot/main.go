@@ -92,7 +92,7 @@ func runMigrations(db *sql.DB) error {
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
-		"file:///internal/storage/migrations",
+		"file://./internal/storage/migrations",
 		"postgres", driver)
 
 	if err != nil {
