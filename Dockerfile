@@ -59,6 +59,6 @@ COPY ./.env ./
 COPY ./internal/storage/migrations ./internal/storage/migrations
 
 # Document the port that may need to be published
-EXPOSE 8000
+EXPOSE 8080
 
 CMD ["/prod/go-bot"]
