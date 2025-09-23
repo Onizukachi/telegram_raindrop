@@ -71,3 +71,20 @@ go test ./...
 3. After authorization, the OAuth callback is handled by the server component
 4. User credentials are stored in the database with proper encryption
 5. Users can then send links to the bot, which are saved to their Raindrop.io account
+
+## Author
+
+👤 **Alexey Glazkov**
+
+- GitHub: [@Onizukachi](https://github.com/Onizukachi)
+- Telegram: [@onizukachi](https://t.me/onizukachi)
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+
+Feel free to check the [issues page](https://github.com/Onizukachi/MarketPriceWatcher/issues).
+
+## Show your support
+
+Give a ⭐️ if you like this project!
