@@ -45,7 +45,7 @@ RUN CGO_ENABLED=0  go build -o go-bot ./cmd/bot
 # Production stage
 # =============================================================================
 # Create a production stage to run the application binary
-FROM scratch AS production
+FROM alpine:3.18 AS production
 
 # Move to working directory /prod
 WORKDIR /prod
@@ -61,4 +61,4 @@ COPY ./internal/storage/migrations ./internal/storage/migrations
 # Document the port that may need to be published
 EXPOSE 8000
 
-CMD ["/prod/go-blog"]
+CMD ["/prod/go-bot"]
