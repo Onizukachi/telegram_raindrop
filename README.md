@@ -2,6 +2,8 @@
 
 A Telegram bot that allows users to save links directly to their Raindrop.io account.
 
+<img width="1120" height="1078" alt="image" src="https://github.com/user-attachments/assets/5e129306-8dba-4889-829c-2167c7e4f6f9" />
+
 ## Features
 
 - Save links from Telegram to Raindrop.io
